@@ -1,7 +1,14 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useUser } from '@clerk/clerk-react';
 
 export type TransactionType = 'income' | 'expense';
+
+export interface FamilyMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'member';
+}
 
 export interface Transaction {
   id: string;
@@ -10,6 +17,7 @@ export interface Transaction {
   description: string;
   category: string;
   type: TransactionType;
+  createdBy?: string;
 }
 
 export interface MonthData {
@@ -26,6 +34,7 @@ interface BudgetContextType {
   monthlyData: MonthData[];
   currentMonth: number;
   currentYear: number;
+  familyMembers: FamilyMember[];
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   deleteTransaction: (id: string) => void;
   setCurrentMonth: (month: number) => void;
@@ -33,6 +42,9 @@ interface BudgetContextType {
   getCurrentMonthData: () => MonthData | undefined;
   calculateYearlyTotals: () => { income: number; expense: number; balance: number };
   filterTransactionsByMonth: (month: number, year: number) => Transaction[];
+  addFamilyMember: (member: Omit<FamilyMember, 'id'>) => void;
+  removeFamilyMember: (id: string) => void;
+  isAdmin: () => boolean;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
@@ -109,11 +121,25 @@ const generateSampleData = (): Transaction[] => {
   return sampleData;
 };
 
+// Dados de exemplo para membros da família
+const generateSampleFamilyMembers = (): FamilyMember[] => {
+  return [
+    {
+      id: '1',
+      name: 'Você',
+      email: 'seu.email@exemplo.com',
+      role: 'admin'
+    }
+  ];
+};
+
 export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
+  const { user, isSignedIn } = useUser();
   const [transactions, setTransactions] = useState<Transaction[]>(generateSampleData);
   const [monthlyData, setMonthlyData] = useState<MonthData[]>([]);
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(generateSampleFamilyMembers);
 
   // Process transactions to calculate monthly data
   useEffect(() => {
@@ -160,10 +186,29 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     processMonthlyData();
   }, [transactions]);
 
+  // Atualiza o membro da família "Você" com os dados do usuário logado
+  useEffect(() => {
+    if (isSignedIn && user) {
+      setFamilyMembers(prev => {
+        const otherMembers = prev.filter(m => m.id !== '1');
+        return [
+          {
+            id: '1',
+            name: user.fullName || 'Você',
+            email: user.primaryEmailAddress?.emailAddress || 'seu.email@exemplo.com',
+            role: 'admin'
+          },
+          ...otherMembers
+        ];
+      });
+    }
+  }, [isSignedIn, user]);
+
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction: Transaction = {
       ...transaction,
       id: Date.now().toString(),
+      createdBy: user?.id || '1',
     };
     
     setTransactions(prev => [...prev, newTransaction]);
@@ -198,6 +243,29 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     );
   };
 
+  const addFamilyMember = (member: Omit<FamilyMember, 'id'>) => {
+    const newMember: FamilyMember = {
+      ...member,
+      id: Date.now().toString()
+    };
+    
+    setFamilyMembers(prev => [...prev, newMember]);
+  };
+
+  const removeFamilyMember = (id: string) => {
+    // Não pode remover o usuário principal (admin)
+    if (id === '1') return;
+    
+    setFamilyMembers(prev => prev.filter(m => m.id !== id));
+  };
+
+  const isAdmin = () => {
+    if (!isSignedIn) return false;
+    
+    const currentUser = familyMembers.find(m => m.email === user?.primaryEmailAddress?.emailAddress);
+    return currentUser?.role === 'admin';
+  };
+
   return (
     <BudgetContext.Provider
       value={{
@@ -205,13 +273,17 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
         monthlyData,
         currentMonth,
         currentYear,
+        familyMembers,
         addTransaction,
         deleteTransaction,
         setCurrentMonth,
         setCurrentYear,
         getCurrentMonthData,
         calculateYearlyTotals,
-        filterTransactionsByMonth
+        filterTransactionsByMonth,
+        addFamilyMember,
+        removeFamilyMember,
+        isAdmin
       }}
     >
       {children}

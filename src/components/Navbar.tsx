@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ListChecks, BarChart4, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ListChecks, BarChart4, Menu, X, Users } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { UserButton } from '@clerk/clerk-react';
 
 const Navbar: React.FC = () => {
   const location = useLocation();
@@ -17,6 +18,7 @@ const Navbar: React.FC = () => {
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/transactions', label: 'Transações', icon: ListChecks },
     { path: '/reports', label: 'Relatórios', icon: BarChart4 },
+    { path: '/familia', label: 'Família', icon: Users },
   ];
   
   return (
@@ -50,44 +52,48 @@ const Navbar: React.FC = () => {
             </ul>
           </nav>
           
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <Sheet open={isOpen} onOpenChange={setIsOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
-                  <span className="sr-only">Abrir menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[250px] sm:w-[300px]">
-                <nav className="flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-6">
-                    <span className="text-lg font-medium">Menu</span>
-                    <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </div>
-                  <ul className="flex flex-col space-y-2">
-                    {navItems.map((item) => (
-                      <li key={item.path}>
-                        <Link
-                          to={item.path}
-                          className={`flex items-center px-4 py-3 rounded-lg transition-all ${
-                            isActive(item.path) 
-                              ? 'bg-primary text-primary-foreground' 
-                              : 'hover:bg-secondary'
-                          }`}
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <item.icon className="w-5 h-5 mr-3" />
-                          {item.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              </SheetContent>
-            </Sheet>
+          <div className="flex items-center gap-4">
+            <UserButton afterSignOutUrl="/entrar" />
+            
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Sheet open={isOpen} onOpenChange={setIsOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-6 w-6" />
+                    <span className="sr-only">Abrir menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[250px] sm:w-[300px]">
+                  <nav className="flex flex-col h-full">
+                    <div className="flex items-center justify-between mb-6">
+                      <span className="text-lg font-medium">Menu</span>
+                      <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </div>
+                    <ul className="flex flex-col space-y-2">
+                      {navItems.map((item) => (
+                        <li key={item.path}>
+                          <Link
+                            to={item.path}
+                            className={`flex items-center px-4 py-3 rounded-lg transition-all ${
+                              isActive(item.path) 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'hover:bg-secondary'
+                            }`}
+                            onClick={() => setIsOpen(false)}
+                          >
+                            <item.icon className="w-5 h-5 mr-3" />
+                            {item.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </nav>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
       </div>
