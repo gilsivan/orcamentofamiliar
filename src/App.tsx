@@ -76,7 +76,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ClerkProvider
-          publishableKey={pk_test_dGlkeS1zdGFsbGlvbi04LmNsZXJrLmFjY291bnRzLmRldiQ}
+          publishableKey={PUBLISHABLE_KEY} 
           clerkJSVersion="5.56.0-snapshot.v20250312225817"
           signInUrl="/entrar"
           signUpUrl="/cadastro"
