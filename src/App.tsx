@@ -50,7 +50,7 @@ const Register = () => {
 const App = () => {
   // Get the publishable key
   const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-  
+
   // If there's no key, show a message prompting for the key
   if (!PUBLISHABLE_KEY) {
     return (
