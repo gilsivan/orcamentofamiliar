@@ -12,8 +12,6 @@ import FamilySettings from "./pages/FamilySettings";
 import AuthLayout from "./components/AuthLayout";
 import { ClerkProvider, SignIn, SignUp } from "@clerk/clerk-react";
 
-
-
 // Criar um componente para o callback de SSO
 const SSOCallback = () => {
   return (
@@ -88,10 +86,9 @@ const App = () => {
           clerkJSVersion="5.56.0-snapshot.v20250312225817"
           signInUrl="/entrar"
           signUpUrl="/cadastro"
-          signInFallbackRedirectUrl="/"
-          signUpFallbackRedirectUrl="/"
-          afterSignOutUrl="/entrar"
-          redirectUrl="/entrar/sso-callback"  // Redirecionar para o SSO callback
+          signInFallbackRedirectUrl="/"  // Redireciona para a página inicial após login
+          signUpFallbackRedirectUrl="/"  // Redireciona para a página inicial após o registro
+          afterSignOutUrl="/entrar"      // Redireciona para a página de login após logout
         >
           <BudgetProvider>
             <Toaster />
