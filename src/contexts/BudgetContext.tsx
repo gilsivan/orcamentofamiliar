@@ -1,14 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-// Check if Clerk is available
-const isClerkAvailable = () => {
-  try {
-    return !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-  } catch (e) {
-    return false;
-  }
-};
+import { useUser } from '@clerk/clerk-react';
 
 export type TransactionType = 'income' | 'expense';
 
@@ -143,17 +134,13 @@ const generateSampleFamilyMembers = (): FamilyMember[] => {
 };
 
 export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
+  const { user, isSignedIn } = useUser();
   const [transactions, setTransactions] = useState<Transaction[]>(generateSampleData);
   const [monthlyData, setMonthlyData] = useState<MonthData[]>([]);
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(generateSampleFamilyMembers);
   
-  // Only import and use clerk hooks if they're available
-  const clerkEnabled = isClerkAvailable();
-  const user = clerkEnabled ? require('@clerk/clerk-react').useUser().user : null;
-  const isSignedIn = clerkEnabled ? require('@clerk/clerk-react').useUser().isSignedIn : false;
-
   // Process transactions to calculate monthly data
   useEffect(() => {
     const processMonthlyData = () => {
@@ -201,7 +188,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
 
   // Atualiza o membro da família "Você" com os dados do usuário logado
   useEffect(() => {
-    if (clerkEnabled && isSignedIn && user) {
+    if (isSignedIn && user) {
       setFamilyMembers(prev => {
         const otherMembers = prev.filter(m => m.id !== '1');
         return [
@@ -215,7 +202,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
         ];
       });
     }
-  }, [isSignedIn, user, clerkEnabled]);
+  }, [isSignedIn, user]);
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction: Transaction = {
@@ -273,7 +260,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   };
 
   const isAdmin = () => {
-    if (!clerkEnabled || !isSignedIn) return false;
+    if (!isSignedIn) return false;
     
     const currentUser = familyMembers.find(m => m.email === user?.primaryEmailAddress?.emailAddress);
     return currentUser?.role === 'admin';

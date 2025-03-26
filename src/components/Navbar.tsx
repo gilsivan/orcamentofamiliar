@@ -1,27 +1,14 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ListChecks, BarChart4, Menu, X, Users, User } from 'lucide-react';
+import { LayoutDashboard, ListChecks, BarChart4, Menu, X, Users } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-
-// Check if Clerk is available
-const isClerkAvailable = () => {
-  try {
-    return !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-  } catch (e) {
-    return false;
-  }
-};
+import { UserButton } from '@clerk/clerk-react';
 
 const Navbar: React.FC = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  
-  // Only import UserButton if Clerk is available
-  const UserButton = isClerkAvailable() 
-    ? require('@clerk/clerk-react').UserButton
-    : null;
   
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -66,14 +53,7 @@ const Navbar: React.FC = () => {
           </nav>
           
           <div className="flex items-center gap-4">
-            {/* Render UserButton only if Clerk is available */}
-            {UserButton ? (
-              <UserButton afterSignOutUrl="/entrar" />
-            ) : (
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
-              </Button>
-            )}
+            <UserButton afterSignOutUrl="/entrar" />
             
             {/* Mobile Menu Button */}
             <div className="md:hidden">

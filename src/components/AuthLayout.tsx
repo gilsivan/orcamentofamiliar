@@ -1,27 +1,12 @@
 
 import React from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
-
-// Check if Clerk is available
-const isClerkAvailable = () => {
-  try {
-    return !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-  } catch (e) {
-    return false;
-  }
-};
+import { useAuth, SignedIn, SignedOut } from '@clerk/clerk-react';
 
 const AuthLayout: React.FC = () => {
-  // If Clerk is not available, just render the content
-  if (!isClerkAvailable()) {
-    return <Outlet />;
-  }
-
-  // Only import Clerk components if available
-  const { useAuth, SignedIn, SignedOut } = require('@clerk/clerk-react');
   const { isLoaded } = useAuth();
 
-  // Mostra uma tela de carregamento enquanto o Clerk está verificando a autenticação
+  // Show loading screen while Clerk is verifying authentication
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center h-screen">
