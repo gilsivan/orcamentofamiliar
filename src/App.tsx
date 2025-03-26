@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,13 +11,12 @@ import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 import FamilySettings from "./pages/FamilySettings";
 import AuthLayout from "./components/AuthLayout";
-import { ClerkProvider } from "@clerk/clerk-react";
+import { ClerkProvider, SignIn, SignUp } from "@clerk/clerk-react";
 
 const queryClient = new QueryClient();
 
 // Create Login component
 const Login = () => {
-  const { SignIn } = require('@clerk/clerk-react');
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-500/10 to-violet-500/10">
       <div className="w-full max-w-md">
@@ -35,7 +33,6 @@ const Login = () => {
 
 // Create Register component
 const Register = () => {
-  const { SignUp } = require('@clerk/clerk-react');
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-500/10 to-violet-500/10">
       <div className="w-full max-w-md">
