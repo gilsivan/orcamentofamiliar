@@ -12,8 +12,7 @@ import FamilySettings from "./pages/FamilySettings";
 import AuthLayout from "./components/AuthLayout";
 import { ClerkProvider, SignIn, SignUp } from "@clerk/clerk-react";
 
-// Importe a página de verificação de e-mail
-import VerifyEmailAddress from "./pages/VerifyEmailAddress";
+
 
 // Criar um componente para o callback de SSO
 const SSOCallback = () => {
@@ -101,7 +100,6 @@ const App = () => {
               <Routes>
                 <Route path="/entrar" element={<Login />} />
                 <Route path="/cadastro" element={<Register />} />
-                <Route path="/cadastro/verify-email-address" element={<VerifyEmailAddress />} />
                 <Route element={<AuthLayout />}>
                   <Route path="/" element={<Index />} />
                   <Route path="/transactions" element={<Transactions />} />
