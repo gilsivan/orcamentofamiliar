@@ -49,8 +49,13 @@ const Register = () => {
           Orçamento Familiar
         </h1>
         <div className="rounded-lg border bg-card shadow-sm">
-          <SignUp routing="path" path="/cadastro" signInUrl="/entrar" />
-        </div>
+          <SignUp
+          routing="path"
+          path="/cadastro"
+          signInUrl="/entrar"
+          afterSignUpUrl="/cadastro"  // Define o redirecionamento após o cadastro
+        />
+          </div>
       </div>
     </div>
   );
