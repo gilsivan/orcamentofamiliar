@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { BudgetProvider } from "./contexts/BudgetContext";
-
 import Index from "./pages/Index";
 import Transactions from "./pages/Transactions";
 import Reports from "./pages/Reports";
@@ -13,9 +12,19 @@ import FamilySettings from "./pages/FamilySettings";
 import AuthLayout from "./components/AuthLayout";
 import { ClerkProvider, SignIn, SignUp } from "@clerk/clerk-react";
 
+// Criar um componente para o callback de SSO
+const SSOCallback = () => {
+  return (
+    <div>
+      <h1>Redirecionando...</h1>
+      {/* Adicione lógica extra ou carregamento se necessário */}
+    </div>
+  );
+};
+
 const queryClient = new QueryClient();
 
-// Create Login component
+// Componente de Login
 const Login = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-500/10 to-violet-500/10">
@@ -31,7 +40,7 @@ const Login = () => {
   );
 };
 
-// Create Register component
+// Componente de Registro
 const Register = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-500/10 to-violet-500/10">
@@ -48,10 +57,10 @@ const Register = () => {
 };
 
 const App = () => {
-  // Get the publishable key
+  // Obtenha a chave publicável
   const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-  // If there's no key, show a message prompting for the key
+  // Se não houver chave, mostre a mensagem para configurar a chave
   if (!PUBLISHABLE_KEY) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center text-center p-4">
@@ -73,13 +82,14 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ClerkProvider
-          publishableKey={PUBLISHABLE_KEY} 
+          publishableKey={PUBLISHABLE_KEY}
           clerkJSVersion="5.56.0-snapshot.v20250312225817"
           signInUrl="/entrar"
           signUpUrl="/cadastro"
           signInFallbackRedirectUrl="/"
           signUpFallbackRedirectUrl="/"
           afterSignOutUrl="/entrar"
+          redirectUrl="/entrar/sso-callback"  // Redirecionar para o SSO callback
         >
           <BudgetProvider>
             <Toaster />
@@ -94,6 +104,8 @@ const App = () => {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/familia" element={<FamilySettings />} />
                 </Route>
+                {/* Rota para o callback de SSO */}
+                <Route path="/entrar/sso-callback" element={<SSOCallback />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
