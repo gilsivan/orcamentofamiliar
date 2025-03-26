@@ -53,7 +53,7 @@ const Register = () => {
           routing="path"
           path="/cadastro"
           signInUrl="/entrar"
-          afterSignUpUrl="/cadastro"  // Define o redirecionamento após o cadastro
+          afterSignUpUrl="/"  // Define o redirecionamento após o cadastro
         />
           </div>
       </div>
