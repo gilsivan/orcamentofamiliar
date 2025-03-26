@@ -82,6 +82,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose }) => {
               className="absolute right-4 top-4 rounded-full p-2 h-auto"
             >
               <X className="h-4 w-4" />
+              <span className="sr-only">Fechar</span>
             </Button>
           </DialogClose>
         </DialogHeader>

@@ -7,17 +7,19 @@ import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Dashboard from '@/components/Dashboard';
 import TransactionForm from '@/components/TransactionForm';
+import { useBudget } from '@/contexts/BudgetContext';
 
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { transactions } = useBudget();
 
   const handleSave = () => {
     // Aqui você poderia implementar a lógica de salvar as alterações
     // Por enquanto, apenas mostramos uma notificação
     toast({
       title: "Alterações salvas",
-      description: "Todas as alterações foram salvas com sucesso.",
+      description: `Todas as alterações foram salvas com sucesso. Total de transações: ${transactions.length}`,
     });
   };
 
