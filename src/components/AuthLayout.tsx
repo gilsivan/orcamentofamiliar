@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
-import { useAuth, SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
+import { useAuth, SignedIn, SignedOut } from '@clerk/clerk-react';
 
 const AuthLayout: React.FC = () => {
   const { isLoaded, userId } = useAuth();

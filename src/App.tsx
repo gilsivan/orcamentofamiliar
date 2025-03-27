@@ -101,8 +101,6 @@ const App = () => {
           clerkJSVersion="5.56.0-snapshot.v20250312225817"
           signInUrl="/entrar"
           signUpUrl="/cadastro"
-          // Substituir afterSignInUrl com fallbackRedirectUrl
-          fallbackRedirectUrl="/"
           signInFallbackRedirectUrl="/"  
           signUpFallbackRedirectUrl="/"
           afterSignUpUrl="/"
