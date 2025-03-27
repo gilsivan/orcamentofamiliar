@@ -11,38 +11,37 @@ import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 import FamilySettings from "./pages/FamilySettings";
 import AuthLayout from "./components/AuthLayout";
-import { ClerkProvider, SignIn, SignUp, useUser } from "@clerk/clerk-react";
-import { useEffect } from "react";
+import AppShell from "./components/AppShell";
+import { ClerkProvider, SignIn, SignUp } from "@clerk/clerk-react";
 
-// Componente de Login
+// Componente de Login melhorado
 const Login = () => {
-  const { isSignedIn } = useUser();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    if (isSignedIn) {
-      navigate("/");
-    }
-  }, [isSignedIn, navigate]);
-  
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-500/10 to-violet-500/10">
-      <div className="w-full max-w-md">
-        <h1 className="mb-8 text-center text-2xl font-semibold bg-gradient-to-r from-blue-500 to-violet-500 bg-clip-text text-transparent">
-          Orçamento Familiar
-        </h1>
-        <div className="rounded-lg border bg-card shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-violet-500/10">
+      <div className="w-full max-w-md animate-fade-in">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent mb-2">
+            Orçamento Familiar
+          </h1>
+          <p className="text-muted-foreground">
+            Controle suas finanças com simplicidade
+          </p>
+        </div>
+        <div className="rounded-lg border bg-card/80 backdrop-blur-sm shadow-lg">
           <SignIn
             appearance={{
               elements: {
                 formButtonPrimary: 
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
-                card: "bg-card",
-                headerTitle: "text-foreground",
+                  "bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-700 hover:to-violet-700 transition-all",
+                card: "bg-transparent shadow-none border-none p-4",
+                headerTitle: "text-foreground text-xl",
                 headerSubtitle: "text-muted-foreground",
                 formFieldLabel: "text-foreground",
-                footerActionLink: "text-primary hover:text-primary/90"
+                footerActionLink: "text-primary hover:text-primary/90",
+                socialButtonsIconButton: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                formFieldInput: "bg-background/60 backdrop-blur-sm border-input",
+                dividerLine: "bg-muted",
+                dividerText: "text-muted-foreground"
               }
             }}
             signUpUrl="/cadastro"
@@ -53,34 +52,34 @@ const Login = () => {
   );
 };
 
-// Componente de Registro
+// Componente de Registro melhorado
 const Register = () => {
-  const { isSignedIn } = useUser();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (isSignedIn) {
-      navigate("/");
-    }
-  }, [isSignedIn, navigate]);
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-500/10 to-violet-500/10">
-      <div className="w-full max-w-md">
-        <h1 className="mb-8 text-center text-2xl font-semibold bg-gradient-to-r from-blue-500 to-violet-500 bg-clip-text text-transparent">
-          Orçamento Familiar
-        </h1>
-        <div className="rounded-lg border bg-card shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-violet-500/10">
+      <div className="w-full max-w-md animate-fade-in">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent mb-2">
+            Orçamento Familiar
+          </h1>
+          <p className="text-muted-foreground">
+            Crie sua conta e comece a gerenciar suas finanças
+          </p>
+        </div>
+        <div className="rounded-lg border bg-card/80 backdrop-blur-sm shadow-lg">
           <SignUp
             appearance={{
               elements: {
                 formButtonPrimary: 
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
-                card: "bg-card",
-                headerTitle: "text-foreground",
+                  "bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-700 hover:to-violet-700 transition-all",
+                card: "bg-transparent shadow-none border-none p-4",
+                headerTitle: "text-foreground text-xl",
                 headerSubtitle: "text-muted-foreground",
                 formFieldLabel: "text-foreground",
-                footerActionLink: "text-primary hover:text-primary/90"
+                footerActionLink: "text-primary hover:text-primary/90",
+                socialButtonsIconButton: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                formFieldInput: "bg-background/60 backdrop-blur-sm border-input",
+                dividerLine: "bg-muted",
+                dividerText: "text-muted-foreground"
               }
             }}
             signInUrl="/entrar"
@@ -133,14 +132,16 @@ const App = () => {
                 <Route path="/entrar" element={<Login />} />
                 <Route path="/cadastro" element={<Register />} />
                 <Route element={<AuthLayout />}>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/transactions" element={<Transactions />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/familia" element={<FamilySettings />} />
+                  <Route element={<AppShell />}>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/transactions" element={<Transactions />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/familia" element={<FamilySettings />} />
+                  </Route>
                 </Route>
                 {/* Redireciona qualquer rota de autenticação para a página principal após login bem-sucedido */}
                 <Route path="/sso-callback" element={<Navigate to="/" replace />} />
-                <Route path="/entrar/*" element={<Navigate to="/" replace />} />
+                <Route path="/entrar/*" element={<Login />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

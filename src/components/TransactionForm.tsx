@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, ArrowUp, ArrowDown, Calendar, DollarSign, Tag, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,10 +17,13 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogClose,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBudget, TransactionType } from '@/contexts/BudgetContext';
 import { getCategories } from '@/utils/financialUtils';
+import { useToast } from '@/hooks/use-toast';
 
 interface TransactionFormProps {
   onClose?: () => void;
@@ -28,6 +31,7 @@ interface TransactionFormProps {
 
 const TransactionForm: React.FC<TransactionFormProps> = ({ onClose }) => {
   const { addTransaction } = useBudget();
+  const { toast } = useToast();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
@@ -41,6 +45,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose }) => {
     e.preventDefault();
     
     if (!description || !amount || !category || !date) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos para continuar.",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -59,6 +68,12 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose }) => {
     setType('expense');
     setDate(new Date().toISOString().split('T')[0]);
     
+    toast({
+      title: "Transação adicionada",
+      description: `${type === 'income' ? 'Receita' : 'Despesa'} registrada com sucesso.`,
+      variant: "default"
+    });
+    
     if (onClose) {
       onClose();
     }
@@ -69,13 +84,17 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="rounded-full w-14 h-14 shadow-lg fixed bottom-6 right-6 z-10">
+        <Button 
+          className="rounded-full w-14 h-14 shadow-lg fixed bottom-6 right-6 z-10 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700"
+        >
           <Plus className="w-6 h-6" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] animate-scale-in">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Nova Transação</DialogTitle>
+      <DialogContent className="sm:max-w-[425px] animate-scale-in rounded-xl">
+        <DialogHeader className="text-center">
+          <DialogTitle className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+            Nova Transação
+          </DialogTitle>
           <DialogClose asChild>
             <Button 
               variant="ghost" 
@@ -87,84 +106,103 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose }) => {
           </DialogClose>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={type === 'expense' ? 'default' : 'outline'}
-              className={`flex-1 ${type === 'expense' ? 'bg-red-500 hover:bg-red-600' : ''}`}
-              onClick={() => setType('expense')}
+        <Tabs defaultValue="expense" value={type} onValueChange={(value) => setType(value as TransactionType)}>
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger 
+              value="expense" 
+              className="data-[state=active]:bg-red-100 data-[state=active]:text-red-700 dark:data-[state=active]:bg-red-900/30 dark:data-[state=active]:text-red-400"
             >
+              <ArrowDown className="h-4 w-4 mr-2" />
               Despesa
-            </Button>
-            <Button
-              type="button"
-              variant={type === 'income' ? 'default' : 'outline'}
-              className={`flex-1 ${type === 'income' ? 'bg-green-500 hover:bg-green-600' : ''}`}
-              onClick={() => setType('income')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="income"
+              className="data-[state=active]:bg-green-100 data-[state=active]:text-green-700 dark:data-[state=active]:bg-green-900/30 dark:data-[state=active]:text-green-400"
             >
+              <ArrowUp className="h-4 w-4 mr-2" />
               Receita
-            </Button>
-          </div>
+            </TabsTrigger>
+          </TabsList>
           
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Input
-              id="description"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="amount">Valor</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="0"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="category">Categoria</Label>
-            <Select
-              value={category}
-              onValueChange={setCategory}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="date">Data</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              required
-            />
-          </div>
-          
-          <Button type="submit" className="w-full">
-            Salvar
-          </Button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="description" className="flex items-center">
+                <FileText className="h-4 w-4 mr-2" />
+                Descrição
+              </Label>
+              <Input
+                id="description"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="Ex: Mercado, Salário..."
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="amount" className="flex items-center">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Valor
+              </Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder="0,00"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="category" className="flex items-center">
+                <Tag className="h-4 w-4 mr-2" />
+                Categoria
+              </Label>
+              <Select
+                value={category}
+                onValueChange={setCategory}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="date" className="flex items-center">
+                <Calendar className="h-4 w-4 mr-2" />
+                Data
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                required
+              />
+            </div>
+            
+            <DialogFooter className="mt-6">
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700"
+              >
+                Salvar Transação
+              </Button>
+            </DialogFooter>
+          </form>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

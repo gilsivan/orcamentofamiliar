@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
+import { Loader2 } from 'lucide-react';
 
 const AuthLayout: React.FC = () => {
   const { isLoaded, userId } = useAuth();
@@ -16,11 +17,14 @@ const AuthLayout: React.FC = () => {
     }
   }, [isSignedIn, location.pathname, navigate]);
 
-  // Show loading screen while Clerk is verifying authentication
+  // Tela de carregamento melhorada enquanto o Clerk verifica a autenticação
   if (!isLoaded) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-violet-500/5">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando sua experiência...</p>
+        </div>
       </div>
     );
   }
