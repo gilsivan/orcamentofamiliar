@@ -33,7 +33,12 @@ const Login = () => {
           Orçamento Familiar
         </h1>
         <div className="rounded-lg border bg-card shadow-sm">
-          <SignIn routing="path" path="/entrar" signUpUrl="/cadastro" />
+          <SignIn 
+            routing="path" 
+            path="/entrar" 
+            signUpUrl="/cadastro" 
+            redirectUrl="/"
+          />
         </div>
       </div>
     </div>
@@ -62,6 +67,7 @@ const Register = () => {
             routing="path"
             path="/cadastro"
             signInUrl="/entrar"
+            redirectUrl="/"
           />
         </div>
       </div>
@@ -103,6 +109,7 @@ const App = () => {
           signUpUrl="/cadastro"
           signInFallbackRedirectUrl="/"  
           signUpFallbackRedirectUrl="/"
+          afterSignInUrl="/"
           afterSignUpUrl="/"
           afterSignOutUrl="/entrar"
         >
@@ -121,6 +128,7 @@ const App = () => {
                 </Route>
                 {/* Redirecionar factor-one para o dashboard */}
                 <Route path="/entrar/factor-one" element={<Navigate to="/" replace />} />
+                <Route path="/entrar/*" element={<Login />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
