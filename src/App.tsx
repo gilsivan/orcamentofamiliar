@@ -86,39 +86,38 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-      <ClerkProvider
-          publishableKey={PUBLISHABLE_KEY}
-          clerkJSVersion="5.56.0-snapshot.v20250312225817"
-          signInUrl="/entrar"
-          signUpUrl="/cadastro"
-          signInFallbackRedirectUrl="/"  
-          signUpFallbackRedirectUrl="/"  
-          afterSignUpUrl="/cadastro"
-          afterSignInUrl="/"   // Adicionado para evitar /entrar/factor-one
-          afterSignOutUrl="/entrar"
-        />
+     <ClerkProvider
+  publishableKey={PUBLISHABLE_KEY}
+  clerkJSVersion="5.56.0-snapshot.v20250312225817"
+  signInUrl="/entrar"
+  signUpUrl="/cadastro"
+  signInFallbackRedirectUrl="/"  
+  signUpFallbackRedirectUrl="/"  
+  afterSignUpUrl="/"   
+  afterSignInUrl="/"  
+  afterSignOutUrl="/entrar"
+>
+  <BudgetProvider>
+    <Toaster />
+    <Sonner />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/entrar" element={<Login />} />
+        <Route path="/cadastro" element={<Register />} />
+        <Route element={<AuthLayout />}>
+          <Route path="/" element={<Index />} />
+          <Route path="/transactions" element={<Transactions />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/familia" element={<FamilySettings />} />
+        </Route>
+        {/* Rota para o callback de SSO */}
+        <Route path="/entrar/sso-callback" element={<SSOCallback />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  </BudgetProvider>
+</ClerkProvider>
 
-
-          <BudgetProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/entrar" element={<Login />} />
-                <Route path="/cadastro" element={<Register />} />
-                <Route element={<AuthLayout />}>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/transactions" element={<Transactions />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/familia" element={<FamilySettings />} />
-                </Route>
-                {/* Rota para o callback de SSO */}
-                <Route path="/entrar/sso-callback" element={<SSOCallback />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </BudgetProvider>
-        </ClerkProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
