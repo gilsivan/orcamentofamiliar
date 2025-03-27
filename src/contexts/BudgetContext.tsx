@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useUser } from '@clerk/clerk-react';
 
@@ -133,13 +134,71 @@ const generateSampleFamilyMembers = (): FamilyMember[] => {
   ];
 };
 
+// Função para converter objetos Date para string quando salvando no localStorage
+const serializeData = (data: any): string => {
+  return JSON.stringify(data, (key, value) => {
+    if (value instanceof Date) {
+      return { __type: 'Date', value: value.toISOString() };
+    }
+    return value;
+  });
+};
+
+// Função para converter strings de data de volta para objetos Date quando lendo do localStorage
+const deserializeData = (data: string): any => {
+  return JSON.parse(data, (key, value) => {
+    if (value && typeof value === 'object' && value.__type === 'Date') {
+      return new Date(value.value);
+    }
+    return value;
+  });
+};
+
 export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   const { user, isSignedIn } = useUser();
-  const [transactions, setTransactions] = useState<Transaction[]>(generateSampleData);
+  
+  // Carrega dados do localStorage ou usa dados de exemplo
+  const loadTransactions = (): Transaction[] => {
+    const savedData = localStorage.getItem('budget_transactions');
+    if (savedData) {
+      try {
+        return deserializeData(savedData);
+      } catch (error) {
+        console.error('Erro ao carregar transações do localStorage:', error);
+        return generateSampleData();
+      }
+    }
+    return generateSampleData();
+  };
+  
+  const loadFamilyMembers = (): FamilyMember[] => {
+    const savedData = localStorage.getItem('budget_family_members');
+    if (savedData) {
+      try {
+        return JSON.parse(savedData);
+      } catch (error) {
+        console.error('Erro ao carregar membros da família do localStorage:', error);
+        return generateSampleFamilyMembers();
+      }
+    }
+    return generateSampleFamilyMembers();
+  };
+  
+  const [transactions, setTransactions] = useState<Transaction[]>(loadTransactions);
   const [monthlyData, setMonthlyData] = useState<MonthData[]>([]);
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(generateSampleFamilyMembers);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(loadFamilyMembers);
+  
+  // Salva transações no localStorage quando mudam
+  useEffect(() => {
+    localStorage.setItem('budget_transactions', serializeData(transactions));
+  }, [transactions]);
+  
+  // Salva membros da família no localStorage quando mudam
+  useEffect(() => {
+    localStorage.setItem('budget_family_members', JSON.stringify(familyMembers));
+  }, [familyMembers]);
   
   // Process transactions to calculate monthly data
   useEffect(() => {

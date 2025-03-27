@@ -27,16 +27,17 @@ const Login = () => {
             Controle suas finanças com simplicidade
           </p>
         </div>
-        <div className="rounded-lg border bg-card/80 backdrop-blur-sm shadow-lg">
+        <div className="rounded-lg border bg-card/80 backdrop-blur-sm shadow-lg overflow-hidden">
           <SignIn
             appearance={{
               elements: {
-                formButtonPrimary: 
-                  "bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-700 hover:to-violet-700 transition-all",
+                rootBox: "w-full",
                 card: "bg-transparent shadow-none border-none p-4",
                 headerTitle: "text-foreground text-xl",
                 headerSubtitle: "text-muted-foreground",
                 formFieldLabel: "text-foreground",
+                formButtonPrimary: 
+                  "bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-700 hover:to-violet-700 transition-all",
                 footerActionLink: "text-primary hover:text-primary/90",
                 socialButtonsIconButton: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
                 formFieldInput: "bg-background/60 backdrop-blur-sm border-input",
@@ -65,16 +66,17 @@ const Register = () => {
             Crie sua conta e comece a gerenciar suas finanças
           </p>
         </div>
-        <div className="rounded-lg border bg-card/80 backdrop-blur-sm shadow-lg">
+        <div className="rounded-lg border bg-card/80 backdrop-blur-sm shadow-lg overflow-hidden">
           <SignUp
             appearance={{
               elements: {
-                formButtonPrimary: 
-                  "bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-700 hover:to-violet-700 transition-all",
+                rootBox: "w-full",
                 card: "bg-transparent shadow-none border-none p-4",
                 headerTitle: "text-foreground text-xl",
                 headerSubtitle: "text-muted-foreground",
                 formFieldLabel: "text-foreground",
+                formButtonPrimary: 
+                  "bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-700 hover:to-violet-700 transition-all",
                 footerActionLink: "text-primary hover:text-primary/90",
                 socialButtonsIconButton: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
                 formFieldInput: "bg-background/60 backdrop-blur-sm border-input",
@@ -120,8 +122,8 @@ const App = () => {
         <ClerkProvider
           publishableKey={PUBLISHABLE_KEY}
           clerkJSVersion="5.56.0-snapshot.v20250312225817"
-          afterSignInUrl="/"
-          afterSignUpUrl="/"
+          fallbackRedirectUrl="/"
+          forceRedirectUrl="/"
           afterSignOutUrl="/entrar"
         >
           <BudgetProvider>

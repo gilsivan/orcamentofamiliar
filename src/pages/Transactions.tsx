@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Search, Check, X } from 'lucide-react';
-import Navbar from '@/components/Navbar';
 import TransactionList from '@/components/TransactionList';
 import TransactionForm from '@/components/TransactionForm';
 import ExportButton from '@/components/ExportButton';
@@ -60,7 +59,6 @@ const Transactions = () => {
   
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <main className="container mx-auto px-4 py-8 animate-fade-in">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0 mb-6">
           <h1 className="text-3xl font-bold">Transações</h1>

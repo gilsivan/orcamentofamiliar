@@ -12,7 +12,7 @@ const AuthLayout: React.FC = () => {
 
   // Verifica e redireciona automaticamente qualquer rota de autenticação para o dashboard
   useEffect(() => {
-    if (isSignedIn && location.pathname.includes('/entrar')) {
+    if (isSignedIn && (location.pathname.includes('/entrar') || location.pathname.includes('/cadastro'))) {
       navigate('/', { replace: true });
     }
   }, [isSignedIn, location.pathname, navigate]);
