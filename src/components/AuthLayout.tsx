@@ -1,10 +1,16 @@
 
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
-import { useAuth, SignedIn, SignedOut } from '@clerk/clerk-react';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { useAuth, SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
 
 const AuthLayout: React.FC = () => {
-  const { isLoaded } = useAuth();
+  const { isLoaded, userId } = useAuth();
+  const location = useLocation();
+
+  // Verifica se estamos no caminho factor-one e redireciona
+  if (location.pathname.includes('factor-one')) {
+    return <Navigate to="/" replace />;
+  }
 
   // Show loading screen while Clerk is verifying authentication
   if (!isLoaded) {

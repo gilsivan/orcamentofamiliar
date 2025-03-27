@@ -14,18 +14,6 @@ import AuthLayout from "./components/AuthLayout";
 import { ClerkProvider, SignIn, SignUp, useUser } from "@clerk/clerk-react";
 import { useEffect } from "react";
 
-// Criar um componente para o callback de SSO
-const SSOCallback = () => {
-  return (
-    <div>
-      <h1>Redirecionando...</h1>
-      {/* Adicione lógica extra ou carregamento se necessário */}
-    </div>
-  );
-};
-
-const queryClient = new QueryClient();
-
 // Componente de Login
 const Login = () => {
   const { isSignedIn } = useUser();
@@ -36,12 +24,7 @@ const Login = () => {
     if (isSignedIn) {
       navigate("/");
     }
-
-    // Bloqueia o acesso a "/factor-one"
-    if (location.pathname.includes("/factor-one")) {
-      navigate("/");
-    }
-  }, [isSignedIn, location, navigate]);
+  }, [isSignedIn, navigate]);
   
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-500/10 to-violet-500/10">
@@ -59,6 +42,15 @@ const Login = () => {
 
 // Componente de Registro
 const Register = () => {
+  const { isSignedIn } = useUser();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isSignedIn) {
+      navigate("/");
+    }
+  }, [isSignedIn, navigate]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-500/10 to-violet-500/10">
       <div className="w-full max-w-md">
@@ -67,16 +59,17 @@ const Register = () => {
         </h1>
         <div className="rounded-lg border bg-card shadow-sm">
           <SignUp
-          routing="path"
-          path="/cadastro"
-          signInUrl="/entrar"
-          afterSignUpUrl="/cadastro"  // Define o redirecionamento após o cadastro
-        />
-          </div>
+            routing="path"
+            path="/cadastro"
+            signInUrl="/entrar"
+          />
+        </div>
       </div>
     </div>
   );
 };
+
+const queryClient = new QueryClient();
 
 const App = () => {
   // Obtenha a chave publicável
@@ -103,18 +96,18 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-         <ClerkProvider
+        <ClerkProvider
           publishableKey={PUBLISHABLE_KEY}
           clerkJSVersion="5.56.0-snapshot.v20250312225817"
           signInUrl="/entrar"
           signUpUrl="/cadastro"
+          // Substituir afterSignInUrl com fallbackRedirectUrl
+          fallbackRedirectUrl="/"
           signInFallbackRedirectUrl="/"  
-          signUpFallbackRedirectUrl="/"  
-          afterSignInUrl="/"   // Garante que o usuário vá para a página inicial após login
-          afterSignUpUrl="/cadastro"
+          signUpFallbackRedirectUrl="/"
+          afterSignUpUrl="/"
           afterSignOutUrl="/entrar"
         >
-
           <BudgetProvider>
             <Toaster />
             <Sonner />
@@ -128,8 +121,8 @@ const App = () => {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/familia" element={<FamilySettings />} />
                 </Route>
-                {/* Rota para o callback de SSO */}
-                <Route path="/entrar/sso-callback" element={<SSOCallback />} />
+                {/* Redirecionar factor-one para o dashboard */}
+                <Route path="/entrar/factor-one" element={<Navigate to="/" replace />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
