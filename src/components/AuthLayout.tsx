@@ -1,16 +1,20 @@
 
-import React from 'react';
-import { Outlet, Navigate, useLocation } from 'react-router-dom';
-import { useAuth, SignedIn, SignedOut } from '@clerk/clerk-react';
+import React, { useEffect } from 'react';
+import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth, SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
 
 const AuthLayout: React.FC = () => {
   const { isLoaded, userId } = useAuth();
+  const { user, isSignedIn } = useUser();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Verifica se estamos no caminho factor-one e redireciona
-  if (location.pathname.includes('factor-one')) {
-    return <Navigate to="/" replace />;
-  }
+  // Verifica e redireciona automaticamente qualquer rota de autenticação para o dashboard
+  useEffect(() => {
+    if (isSignedIn && location.pathname.includes('/entrar')) {
+      navigate('/', { replace: true });
+    }
+  }, [isSignedIn, location.pathname, navigate]);
 
   // Show loading screen while Clerk is verifying authentication
   if (!isLoaded) {

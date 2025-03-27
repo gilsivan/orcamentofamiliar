@@ -33,11 +33,19 @@ const Login = () => {
           Orçamento Familiar
         </h1>
         <div className="rounded-lg border bg-card shadow-sm">
-          <SignIn 
-            routing="path" 
-            path="/entrar" 
-            signUpUrl="/cadastro" 
-            redirectUrl="/"
+          <SignIn
+            appearance={{
+              elements: {
+                formButtonPrimary: 
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                card: "bg-card",
+                headerTitle: "text-foreground",
+                headerSubtitle: "text-muted-foreground",
+                formFieldLabel: "text-foreground",
+                footerActionLink: "text-primary hover:text-primary/90"
+              }
+            }}
+            signUpUrl="/cadastro"
           />
         </div>
       </div>
@@ -64,10 +72,18 @@ const Register = () => {
         </h1>
         <div className="rounded-lg border bg-card shadow-sm">
           <SignUp
-            routing="path"
-            path="/cadastro"
+            appearance={{
+              elements: {
+                formButtonPrimary: 
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                card: "bg-card",
+                headerTitle: "text-foreground",
+                headerSubtitle: "text-muted-foreground",
+                formFieldLabel: "text-foreground",
+                footerActionLink: "text-primary hover:text-primary/90"
+              }
+            }}
             signInUrl="/entrar"
-            redirectUrl="/"
           />
         </div>
       </div>
@@ -105,10 +121,6 @@ const App = () => {
         <ClerkProvider
           publishableKey={PUBLISHABLE_KEY}
           clerkJSVersion="5.56.0-snapshot.v20250312225817"
-          signInUrl="/entrar"
-          signUpUrl="/cadastro"
-          signInFallbackRedirectUrl="/"  
-          signUpFallbackRedirectUrl="/"
           afterSignInUrl="/"
           afterSignUpUrl="/"
           afterSignOutUrl="/entrar"
@@ -126,9 +138,9 @@ const App = () => {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/familia" element={<FamilySettings />} />
                 </Route>
-                {/* Redirecionar factor-one para o dashboard */}
-                <Route path="/entrar/factor-one" element={<Navigate to="/" replace />} />
-                <Route path="/entrar/*" element={<Login />} />
+                {/* Redireciona qualquer rota de autenticação para a página principal após login bem-sucedido */}
+                <Route path="/sso-callback" element={<Navigate to="/" replace />} />
+                <Route path="/entrar/*" element={<Navigate to="/" replace />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
