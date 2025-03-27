@@ -53,7 +53,7 @@ const Register = () => {
           routing="path"
           path="/cadastro"
           signInUrl="/entrar"
-          afterSignUpUrl="/"  // Define o redirecionamento após o cadastro
+          afterSignUpUrl="/cadastro"  // Define o redirecionamento após o cadastro
         />
           </div>
       </div>
@@ -86,38 +86,37 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-     <ClerkProvider
-  publishableKey={PUBLISHABLE_KEY}
-  clerkJSVersion="5.56.0-snapshot.v20250312225817"
-  signInUrl="/entrar"
-  signUpUrl="/cadastro"
-  signInFallbackRedirectUrl="/"  
-  signUpFallbackRedirectUrl="/"  
-  afterSignUpUrl="/"   
-  afterSignInUrl="/"  
-  afterSignOutUrl="/entrar"
->
-  <BudgetProvider>
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-      <Routes>
-        <Route path="/entrar" element={<Login />} />
-        <Route path="/cadastro" element={<Register />} />
-        <Route element={<AuthLayout />}>
-          <Route path="/" element={<Index />} />
-          <Route path="/transactions" element={<Transactions />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/familia" element={<FamilySettings />} />
-        </Route>
-        {/* Rota para o callback de SSO */}
-        <Route path="/entrar/sso-callback" element={<SSOCallback />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
-  </BudgetProvider>
-</ClerkProvider>
+       <ClerkProvider
+          publishableKey={PUBLISHABLE_KEY}
+          clerkJSVersion="5.56.0-snapshot.v20250312225817"
+          signInUrl="/entrar"
+          signUpUrl="/cadastro"
+          signInFallbackRedirectUrl="/"  // Redireciona para a página inicial após login
+          signUpFallbackRedirectUrl="/"  // Redireciona para a página inicial após o registro
+          afterSignUpUrl="/cadastro"    // Define que após o cadastro o usuário permanece na página de cadastro
+          afterSignOutUrl="/entrar"     // Redireciona para a página de login após logout
+        >
 
+          <BudgetProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/entrar" element={<Login />} />
+                <Route path="/cadastro" element={<Register />} />
+                <Route element={<AuthLayout />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/transactions" element={<Transactions />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/familia" element={<FamilySettings />} />
+                </Route>
+                {/* Rota para o callback de SSO */}
+                <Route path="/entrar/sso-callback" element={<SSOCallback />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </BudgetProvider>
+        </ClerkProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
