@@ -86,15 +86,16 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-       <ClerkProvider
+         <ClerkProvider
           publishableKey={PUBLISHABLE_KEY}
           clerkJSVersion="5.56.0-snapshot.v20250312225817"
           signInUrl="/entrar"
           signUpUrl="/cadastro"
-          signInFallbackRedirectUrl="/"  // Redireciona para a página inicial após login
-          signUpFallbackRedirectUrl="/"  // Redireciona para a página inicial após o registro
-          afterSignUpUrl="/cadastro"    // Define que após o cadastro o usuário permanece na página de cadastro
-          afterSignOutUrl="/entrar"     // Redireciona para a página de login após logout
+          signInFallbackRedirectUrl="/"  
+          signUpFallbackRedirectUrl="/"  
+          afterSignInUrl="/"   // Garante que o usuário vá para a página inicial após login
+          afterSignUpUrl="/cadastro"
+          afterSignOutUrl="/entrar"
         >
 
           <BudgetProvider>
