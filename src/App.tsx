@@ -26,6 +26,22 @@ const queryClient = new QueryClient();
 
 // Componente de Login
 const Login = () => {
+
+
+const { isSignedIn } = useUser();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (isSignedIn) {
+      navigate("/");
+    }
+
+    // Bloqueia o acesso a "/factor-one"
+    if (location.pathname.includes("/factor-one")) {
+      navigate("/");
+    }
+  }, [isSignedIn, location, navigate]);
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-500/10 to-violet-500/10">
       <div className="w-full max-w-md">
