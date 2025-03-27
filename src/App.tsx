@@ -1,8 +1,9 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { BudgetProvider } from "./contexts/BudgetContext";
 import Index from "./pages/Index";
 import Transactions from "./pages/Transactions";
@@ -10,7 +11,8 @@ import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 import FamilySettings from "./pages/FamilySettings";
 import AuthLayout from "./components/AuthLayout";
-import { ClerkProvider, SignIn, SignUp } from "@clerk/clerk-react";
+import { ClerkProvider, SignIn, SignUp, useUser } from "@clerk/clerk-react";
+import { useEffect } from "react";
 
 // Criar um componente para o callback de SSO
 const SSOCallback = () => {
@@ -26,9 +28,7 @@ const queryClient = new QueryClient();
 
 // Componente de Login
 const Login = () => {
-
-
-const { isSignedIn } = useUser();
+  const { isSignedIn } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,6 +42,7 @@ const { isSignedIn } = useUser();
       navigate("/");
     }
   }, [isSignedIn, location, navigate]);
+  
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-500/10 to-violet-500/10">
       <div className="w-full max-w-md">
