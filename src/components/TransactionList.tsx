@@ -25,13 +25,22 @@ const TransactionList: React.FC<TransactionListProps> = ({
 }) => {
   const { deleteTransaction } = useBudget();
   
+  // Filter out transactions with invalid date objects
+  const validTransactions = transactions.filter(t => t.date instanceof Date);
+  
   const displayTransactions = limit 
-    ? transactions.slice(0, limit) 
-    : transactions;
+    ? validTransactions.slice(0, limit) 
+    : validTransactions;
     
-  const sortedTransactions = [...displayTransactions].sort(
-    (a, b) => b.date.getTime() - a.date.getTime()
-  );
+  // Safe sorting that handles potential invalid date objects
+  const sortedTransactions = [...displayTransactions].sort((a, b) => {
+    // Double-check that both dates are valid
+    if (!(a.date instanceof Date) || !(b.date instanceof Date)) {
+      console.error('Invalid date object found during sorting', { a, b });
+      return 0;
+    }
+    return b.date.getTime() - a.date.getTime();
+  });
   
   if (sortedTransactions.length === 0) {
     return (
@@ -65,7 +74,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                       {transaction.category}
                     </span>
                     <span className="text-xs px-2 py-0.5 bg-secondary rounded-full">
-                      {formatDate(transaction.date)}
+                      {transaction.date instanceof Date ? formatDate(transaction.date) : 'Data inválida'}
                     </span>
                   </div>
                 </div>

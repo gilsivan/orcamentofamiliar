@@ -134,7 +134,7 @@ const generateSampleFamilyMembers = (): FamilyMember[] => {
   ];
 };
 
-// Função para converter objetos Date para string quando salvando no localStorage
+// Improved function for serializing Date objects when saving to localStorage
 const serializeData = (data: any): string => {
   return JSON.stringify(data, (key, value) => {
     if (value instanceof Date) {
@@ -144,25 +144,52 @@ const serializeData = (data: any): string => {
   });
 };
 
-// Função para converter strings de data de volta para objetos Date quando lendo do localStorage
+// Improved function for deserializing Date objects when reading from localStorage
 const deserializeData = (data: string): any => {
-  return JSON.parse(data, (key, value) => {
-    if (value && typeof value === 'object' && value.__type === 'Date') {
-      return new Date(value.value);
+  try {
+    return JSON.parse(data, (key, value) => {
+      if (value && typeof value === 'object' && value.__type === 'Date') {
+        return new Date(value.value);
+      }
+      return value;
+    });
+  } catch (error) {
+    console.error('Error deserializing data:', error);
+    return [];
+  }
+};
+
+// Verify and fix transaction dates
+const ensureValidDates = (transactions: Transaction[]): Transaction[] => {
+  return transactions.map(transaction => {
+    // Make sure date is a valid Date object
+    if (!(transaction.date instanceof Date)) {
+      console.warn('Invalid date found, converting:', transaction);
+      // Try to convert to Date if it's a string or handle other cases
+      if (typeof transaction.date === 'string') {
+        transaction.date = new Date(transaction.date);
+      } else if (transaction.date && typeof transaction.date === 'object' && 'value' in transaction.date) {
+        // Handle case where date might be stored as an object with a value property
+        transaction.date = new Date((transaction.date as any).value);
+      } else {
+        // Fallback to current date if conversion fails
+        transaction.date = new Date();
+      }
     }
-    return value;
+    return transaction;
   });
 };
 
 export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   const { user, isSignedIn } = useUser();
   
-  // Carrega dados do localStorage ou usa dados de exemplo
+  // Safely load and validate transactions from localStorage
   const loadTransactions = (): Transaction[] => {
     const savedData = localStorage.getItem('budget_transactions');
     if (savedData) {
       try {
-        return deserializeData(savedData);
+        const parsed = deserializeData(savedData);
+        return ensureValidDates(parsed);
       } catch (error) {
         console.error('Erro ao carregar transações do localStorage:', error);
         return generateSampleData();
@@ -190,60 +217,83 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(loadFamilyMembers);
   
-  // Salva transações no localStorage quando mudam
+  // Safely save transactions to localStorage
   useEffect(() => {
-    localStorage.setItem('budget_transactions', serializeData(transactions));
+    try {
+      localStorage.setItem('budget_transactions', serializeData(transactions));
+    } catch (error) {
+      console.error('Error saving transactions to localStorage:', error);
+    }
   }, [transactions]);
   
-  // Salva membros da família no localStorage quando mudam
+  // Save family members to localStorage
   useEffect(() => {
-    localStorage.setItem('budget_family_members', JSON.stringify(familyMembers));
+    try {
+      localStorage.setItem('budget_family_members', JSON.stringify(familyMembers));
+    } catch (error) {
+      console.error('Error saving family members to localStorage:', error);
+    }
   }, [familyMembers]);
   
-  // Process transactions to calculate monthly data
+  // Process transactions to calculate monthly data with added error handling
   useEffect(() => {
     const processMonthlyData = () => {
-      // Get unique month/year combinations
-      const months = Array.from(
-        new Set(
-          transactions.map(
-            t => `${t.date.getMonth()}-${t.date.getFullYear()}`
+      try {
+        // Ensure all transaction dates are valid before processing
+        const validTransactions = ensureValidDates(transactions);
+        
+        // Get unique month/year combinations
+        const months = Array.from(
+          new Set(
+            validTransactions.map(t => {
+              if (!(t.date instanceof Date)) {
+                console.error('Invalid date found even after validation:', t);
+                return `${currentMonth}-${currentYear}`;
+              }
+              return `${t.date.getMonth()}-${t.date.getFullYear()}`;
+            })
           )
-        )
-      );
-
-      const data: MonthData[] = months.map(monthYear => {
-        const [month, year] = monthYear.split('-').map(Number);
-        
-        // Filter transactions for this month
-        const monthTransactions = transactions.filter(
-          t => t.date.getMonth() === month && t.date.getFullYear() === year
         );
+
+        const data: MonthData[] = months.map(monthYear => {
+          const [month, year] = monthYear.split('-').map(Number);
+          
+          // Filter transactions for this month with additional validation
+          const monthTransactions = validTransactions.filter(t => {
+            if (!(t.date instanceof Date)) {
+              return false;
+            }
+            return t.date.getMonth() === month && t.date.getFullYear() === year;
+          });
+          
+          // Calculate totals
+          const income = monthTransactions
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+          const expense = monthTransactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+          return {
+            month,
+            year,
+            income,
+            expense,
+            balance: income - expense,
+            transactions: monthTransactions
+          };
+        });
         
-        // Calculate totals
-        const income = monthTransactions
-          .filter(t => t.type === 'income')
-          .reduce((sum, t) => sum + t.amount, 0);
-          
-        const expense = monthTransactions
-          .filter(t => t.type === 'expense')
-          .reduce((sum, t) => sum + t.amount, 0);
-          
-        return {
-          month,
-          year,
-          income,
-          expense,
-          balance: income - expense,
-          transactions: monthTransactions
-        };
-      });
-      
-      setMonthlyData(data);
+        setMonthlyData(data);
+      } catch (error) {
+        console.error('Error processing monthly data:', error);
+        setMonthlyData([]);
+      }
     };
     
     processMonthlyData();
-  }, [transactions]);
+  }, [transactions, currentMonth, currentYear]);
 
   // Atualiza o membro da família "Você" com os dados do usuário logado
   useEffect(() => {
@@ -264,8 +314,15 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   }, [isSignedIn, user]);
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
+    // Ensure the date is a valid Date object before saving
+    let transactionDate = transaction.date;
+    if (!(transactionDate instanceof Date)) {
+      transactionDate = new Date(transactionDate);
+    }
+    
     const newTransaction: Transaction = {
       ...transaction,
+      date: transactionDate,
       id: Date.now().toString(),
       createdBy: user?.id || '1',
     };
@@ -297,9 +354,14 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   };
 
   const filterTransactionsByMonth = (month: number, year: number) => {
-    return transactions.filter(
-      t => t.date.getMonth() === month && t.date.getFullYear() === year
-    );
+    // Add validation to ensure we only return transactions with valid dates
+    return transactions.filter(t => {
+      if (!(t.date instanceof Date)) {
+        console.warn('Skipping transaction with invalid date:', t);
+        return false;
+      }
+      return t.date.getMonth() === month && t.date.getFullYear() === year;
+    });
   };
 
   const addFamilyMember = (member: Omit<FamilyMember, 'id'>) => {

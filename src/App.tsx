@@ -122,7 +122,7 @@ const App = () => {
         <ClerkProvider
           publishableKey={PUBLISHABLE_KEY}
           clerkJSVersion="5.56.0-snapshot.v20250312225817"
-          fallbackRedirectUrl="/"
+          signInFallbackRedirectUrl="/"
           forceRedirectUrl="/"
           afterSignOutUrl="/entrar"
         >

@@ -45,9 +45,15 @@ const Transactions = () => {
     }
   };
   
-  // Filter transactions
+  // Ensure transactions are properly filtered and date objects are valid
   const filteredTransactions = filterTransactionsByMonth(currentMonth, currentYear)
     .filter(t => {
+      // Make sure the date is a valid Date object
+      if (!(t.date instanceof Date)) {
+        console.error('Invalid date object found:', t);
+        return false;
+      }
+      
       const matchesSearch = searchQuery === '' ||
         t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.category.toLowerCase().includes(searchQuery.toLowerCase());
