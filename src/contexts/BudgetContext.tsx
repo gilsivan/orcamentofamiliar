@@ -19,6 +19,7 @@ export interface Transaction {
   category: string;
   type: TransactionType;
   createdBy?: string;
+  familyId?: string; // ID da família para vinculação
 }
 
 export interface MonthData {
@@ -36,6 +37,7 @@ interface BudgetContextType {
   currentMonth: number;
   currentYear: number;
   familyMembers: FamilyMember[];
+  familyId: string | null;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   deleteTransaction: (id: string) => void;
   setCurrentMonth: (month: number) => void;
@@ -123,12 +125,12 @@ const generateSampleData = (): Transaction[] => {
 };
 
 // Dados de exemplo para membros da família
-const generateSampleFamilyMembers = (): FamilyMember[] => {
+const generateSampleFamilyMembers = (userId: string, userEmail: string, userName: string): FamilyMember[] => {
   return [
     {
-      id: '1',
-      name: 'Você',
-      email: 'seu.email@exemplo.com',
+      id: userId || '1',
+      name: userName || 'Você',
+      email: userEmail || 'seu.email@exemplo.com',
       role: 'admin'
     }
   ];
@@ -163,7 +165,7 @@ const deserializeData = (data: string): any => {
 const ensureValidDates = (transactions: Transaction[]): Transaction[] => {
   return transactions.map(transaction => {
     // Make sure date is a valid Date object
-    if (!(transaction.date instanceof Date)) {
+    if (!(transaction.date instanceof Date) || isNaN(transaction.date.getTime())) {
       console.warn('Invalid date found, converting:', transaction);
       // Try to convert to Date if it's a string or handle other cases
       if (typeof transaction.date === 'string') {
@@ -180,12 +182,39 @@ const ensureValidDates = (transactions: Transaction[]): Transaction[] => {
   });
 };
 
+// Gera um ID único para a família com base no email do usuário
+const generateFamilyId = (email: string): string => {
+  return `family_${email.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`;
+};
+
 export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   const { user, isSignedIn } = useUser();
+  const [familyId, setFamilyId] = useState<string | null>(null);
+  
+  // Gera um ID de família baseado no email do usuário quando disponível
+  useEffect(() => {
+    if (isSignedIn && user?.primaryEmailAddress) {
+      const newFamilyId = generateFamilyId(user.primaryEmailAddress.emailAddress);
+      setFamilyId(newFamilyId);
+    } else {
+      setFamilyId(null);
+    }
+  }, [isSignedIn, user]);
+  
+  // Função para obter a chave de armazenamento específica do usuário
+  const getUserStorageKey = (baseKey: string): string => {
+    return familyId ? `${baseKey}_${familyId}` : baseKey;
+  };
   
   // Safely load and validate transactions from localStorage
   const loadTransactions = (): Transaction[] => {
-    const savedData = localStorage.getItem('budget_transactions');
+    if (!isSignedIn || !familyId) {
+      return [];
+    }
+    
+    const storageKey = getUserStorageKey('budget_transactions');
+    const savedData = localStorage.getItem(storageKey);
+    
     if (savedData) {
       try {
         const parsed = deserializeData(savedData);
@@ -195,45 +224,83 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
         return generateSampleData();
       }
     }
-    return generateSampleData();
+    
+    // No primeiro login, geramos dados de exemplo
+    const sampleData = generateSampleData();
+    return sampleData.map(transaction => ({
+      ...transaction,
+      familyId: familyId
+    }));
   };
   
   const loadFamilyMembers = (): FamilyMember[] => {
-    const savedData = localStorage.getItem('budget_family_members');
+    if (!isSignedIn || !familyId) {
+      return [];
+    }
+    
+    const storageKey = getUserStorageKey('budget_family_members');
+    const savedData = localStorage.getItem(storageKey);
+    
     if (savedData) {
       try {
         return JSON.parse(savedData);
       } catch (error) {
         console.error('Erro ao carregar membros da família do localStorage:', error);
-        return generateSampleFamilyMembers();
+        return generateSampleFamilyMembers(
+          user?.id || '1',
+          user?.primaryEmailAddress?.emailAddress || '',
+          user?.fullName || 'Você'
+        );
       }
     }
-    return generateSampleFamilyMembers();
+    
+    return generateSampleFamilyMembers(
+      user?.id || '1',
+      user?.primaryEmailAddress?.emailAddress || '',
+      user?.fullName || 'Você'
+    );
   };
   
-  const [transactions, setTransactions] = useState<Transaction[]>(loadTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthData[]>([]);
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(loadFamilyMembers);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  
+  // Carregar dados quando o ID da família estiver disponível
+  useEffect(() => {
+    if (familyId) {
+      setTransactions(loadTransactions());
+      setFamilyMembers(loadFamilyMembers());
+    } else {
+      setTransactions([]);
+      setFamilyMembers([]);
+    }
+  }, [familyId]);
   
   // Safely save transactions to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem('budget_transactions', serializeData(transactions));
-    } catch (error) {
-      console.error('Error saving transactions to localStorage:', error);
+    if (isSignedIn && familyId && transactions.length > 0) {
+      const storageKey = getUserStorageKey('budget_transactions');
+      try {
+        localStorage.setItem(storageKey, serializeData(transactions));
+      } catch (error) {
+        console.error('Error saving transactions to localStorage:', error);
+      }
     }
-  }, [transactions]);
+  }, [transactions, isSignedIn, familyId]);
   
   // Save family members to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem('budget_family_members', JSON.stringify(familyMembers));
-    } catch (error) {
-      console.error('Error saving family members to localStorage:', error);
+    if (isSignedIn && familyId && familyMembers.length > 0) {
+      const storageKey = getUserStorageKey('budget_family_members');
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(familyMembers));
+      } catch (error) {
+        console.error('Error saving family members to localStorage:', error);
+      }
     }
-  }, [familyMembers]);
+  }, [familyMembers, isSignedIn, familyId]);
   
   // Process transactions to calculate monthly data with added error handling
   useEffect(() => {
@@ -246,7 +313,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
         const months = Array.from(
           new Set(
             validTransactions.map(t => {
-              if (!(t.date instanceof Date)) {
+              if (!(t.date instanceof Date) || isNaN(t.date.getTime())) {
                 console.error('Invalid date found even after validation:', t);
                 return `${currentMonth}-${currentYear}`;
               }
@@ -260,7 +327,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
           
           // Filter transactions for this month with additional validation
           const monthTransactions = validTransactions.filter(t => {
-            if (!(t.date instanceof Date)) {
+            if (!(t.date instanceof Date) || isNaN(t.date.getTime())) {
               return false;
             }
             return t.date.getMonth() === month && t.date.getFullYear() === year;
@@ -297,12 +364,15 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
 
   // Atualiza o membro da família "Você" com os dados do usuário logado
   useEffect(() => {
-    if (isSignedIn && user) {
+    if (isSignedIn && user && familyId) {
       setFamilyMembers(prev => {
-        const otherMembers = prev.filter(m => m.id !== '1');
+        // Filtra membros existentes excluindo o próprio usuário
+        const otherMembers = prev.filter(m => m.id !== user.id);
+        
+        // Adiciona o usuário atual como administrador
         return [
           {
-            id: '1',
+            id: user.id,
             name: user.fullName || 'Você',
             email: user.primaryEmailAddress?.emailAddress || 'seu.email@exemplo.com',
             role: 'admin'
@@ -311,20 +381,30 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
         ];
       });
     }
-  }, [isSignedIn, user]);
+  }, [isSignedIn, user, familyId]);
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
+    if (!isSignedIn || !familyId) {
+      return;
+    }
+    
     // Ensure the date is a valid Date object before saving
     let transactionDate = transaction.date;
-    if (!(transactionDate instanceof Date)) {
+    if (!(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
       transactionDate = new Date(transactionDate);
+      
+      // Se ainda for inválida, use a data atual
+      if (isNaN(transactionDate.getTime())) {
+        transactionDate = new Date();
+      }
     }
     
     const newTransaction: Transaction = {
       ...transaction,
       date: transactionDate,
       id: Date.now().toString(),
-      createdBy: user?.id || '1',
+      createdBy: user?.id,
+      familyId: familyId
     };
     
     setTransactions(prev => [...prev, newTransaction]);
@@ -356,7 +436,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   const filterTransactionsByMonth = (month: number, year: number) => {
     // Add validation to ensure we only return transactions with valid dates
     return transactions.filter(t => {
-      if (!(t.date instanceof Date)) {
+      if (!(t.date instanceof Date) || isNaN(t.date.getTime())) {
         console.warn('Skipping transaction with invalid date:', t);
         return false;
       }
@@ -365,6 +445,10 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   };
 
   const addFamilyMember = (member: Omit<FamilyMember, 'id'>) => {
+    if (!isSignedIn || !familyId) {
+      return;
+    }
+    
     const newMember: FamilyMember = {
       ...member,
       id: Date.now().toString()
@@ -375,7 +459,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
 
   const removeFamilyMember = (id: string) => {
     // Não pode remover o usuário principal (admin)
-    if (id === '1') return;
+    if (id === user?.id) return;
     
     setFamilyMembers(prev => prev.filter(m => m.id !== id));
   };
@@ -395,6 +479,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
         currentMonth,
         currentYear,
         familyMembers,
+        familyId,
         addTransaction,
         deleteTransaction,
         setCurrentMonth,
