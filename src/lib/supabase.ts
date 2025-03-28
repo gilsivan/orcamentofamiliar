@@ -5,14 +5,24 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Check if environment variables are missing
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase URL e chave anônima são necessárias');
-}
+// Check if environment variables are missing or invalid
+const isValidUrl = (url: string) => {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
 
-// Create a dummy client if environment variables are missing
-// This prevents the app from crashing during development
-export const supabase = supabaseUrl && supabaseAnonKey
+const isValidSupabaseConfig = supabaseUrl && 
+                             supabaseAnonKey && 
+                             supabaseUrl !== 'your-supabase-url' &&
+                             supabaseAnonKey !== 'your-supabase-anon-key' &&
+                             isValidUrl(supabaseUrl);
+
+// Create a real client if environment variables are valid, otherwise create a dummy client
+export const supabase = isValidSupabaseConfig
   ? createClient(supabaseUrl, supabaseAnonKey)
   : {
     from: () => ({

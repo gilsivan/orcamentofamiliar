@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -102,9 +103,19 @@ const App = () => {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  // Verificar se as configurações do Supabase estão disponíveis
-  const isSupabaseConfigured = SUPABASE_URL && SUPABASE_URL !== 'your-supabase-url' && 
-                              SUPABASE_KEY && SUPABASE_KEY !== 'your-supabase-anon-key';
+  // Verificar se as configurações do Supabase estão disponíveis e válidas
+  const isValidUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+  
+  const isSupabaseConfigured = SUPABASE_URL && SUPABASE_URL !== 'https://your-project-id.supabase.co' && 
+                              SUPABASE_KEY && SUPABASE_KEY !== 'your-supabase-anon-key' &&
+                              isValidUrl(SUPABASE_URL);
 
   // Se não houver chave, mostre a mensagem para configurar a chave
   if (!PUBLISHABLE_KEY) {
@@ -143,7 +154,7 @@ const App = () => {
                   <ExclamationTriangleIcon className="h-4 w-4" />
                   <AlertTitle>Configuração do Supabase</AlertTitle>
                   <AlertDescription>
-                    As variáveis de ambiente do Supabase não estão configuradas. Dados não serão salvos. 
+                    As variáveis de ambiente do Supabase não estão configuradas corretamente. O URL deve começar com https:// (ex: https://projeto.supabase.co). 
                     Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env
                   </AlertDescription>
                 </Alert>
