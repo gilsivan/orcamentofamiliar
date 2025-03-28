@@ -17,7 +17,7 @@ const isValidUrl = (url: string) => {
 
 const isValidSupabaseConfig = supabaseUrl && 
                              supabaseAnonKey && 
-                             supabaseUrl !== 'your-supabase-url' &&
+                             supabaseUrl !== 'https://your-project-url.supabase.co' &&
                              supabaseAnonKey !== 'your-supabase-anon-key' &&
                              isValidUrl(supabaseUrl);
 
