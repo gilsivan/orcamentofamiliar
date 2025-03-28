@@ -13,13 +13,19 @@ import {
 } from 'recharts';
 import { useBudget } from '@/contexts/BudgetContext';
 import { formatCurrency, getMonthName } from '@/utils/financialUtils';
+import LoadingState from './LoadingState';
 
 const YearlyComparison: React.FC = () => {
   const { 
     monthlyData, 
     currentYear, 
-    setCurrentYear 
+    setCurrentYear,
+    isLoading
   } = useBudget();
+  
+  if (isLoading) {
+    return <LoadingState />;
+  }
   
   // Filter for current year and sort by month
   const yearData = monthlyData

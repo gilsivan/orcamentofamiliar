@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useUser } from '@clerk/clerk-react';
+import { supabase, TransactionRecord, FamilyMemberRecord, FamilyRecord } from '@/lib/supabase';
+import { toast } from '@/hooks/use-toast';
 
 export type TransactionType = 'income' | 'expense';
 
@@ -19,7 +21,7 @@ export interface Transaction {
   category: string;
   type: TransactionType;
   createdBy?: string;
-  familyId?: string; // ID da família para vinculação
+  familyId?: string;
 }
 
 export interface MonthData {
@@ -38,16 +40,17 @@ interface BudgetContextType {
   currentYear: number;
   familyMembers: FamilyMember[];
   familyId: string | null;
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
-  deleteTransaction: (id: string) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   setCurrentMonth: (month: number) => void;
   setCurrentYear: (year: number) => void;
   getCurrentMonthData: () => MonthData | undefined;
   calculateYearlyTotals: () => { income: number; expense: number; balance: number };
   filterTransactionsByMonth: (month: number, year: number) => Transaction[];
-  addFamilyMember: (member: Omit<FamilyMember, 'id'>) => void;
-  removeFamilyMember: (id: string) => void;
+  addFamilyMember: (member: Omit<FamilyMember, 'id'>) => Promise<void>;
+  removeFamilyMember: (id: string) => Promise<void>;
   isAdmin: () => boolean;
+  isLoading: boolean;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
@@ -64,101 +67,50 @@ interface BudgetProviderProps {
   children: ReactNode;
 }
 
-// Helper function to generate sample data
-const generateSampleData = (): Transaction[] => {
-  const currentDate = new Date();
-  const currentMonth = currentDate.getMonth();
-  const currentYear = currentDate.getFullYear();
-  
-  const sampleData: Transaction[] = [
-    {
-      id: '1',
-      date: new Date(currentYear, currentMonth, 5),
-      amount: 2500,
-      description: 'Salário',
-      category: 'Trabalho',
-      type: 'income',
-    },
-    {
-      id: '2',
-      date: new Date(currentYear, currentMonth, 10),
-      amount: 150,
-      description: 'Supermercado',
-      category: 'Alimentação',
-      type: 'expense',
-    },
-    {
-      id: '3',
-      date: new Date(currentYear, currentMonth, 15),
-      amount: 80,
-      description: 'Conta de luz',
-      category: 'Utilidades',
-      type: 'expense',
-    },
-    {
-      id: '4',
-      date: new Date(currentYear, currentMonth, 20),
-      amount: 500,
-      description: 'Freelance',
-      category: 'Trabalho',
-      type: 'income',
-    },
-    {
-      id: '5',
-      date: new Date(currentYear, currentMonth - 1, 5),
-      amount: 2500,
-      description: 'Salário',
-      category: 'Trabalho',
-      type: 'income',
-    },
-    {
-      id: '6',
-      date: new Date(currentYear, currentMonth - 1, 10),
-      amount: 200,
-      description: 'Supermercado',
-      category: 'Alimentação',
-      type: 'expense',
-    },
-  ];
-  
-  return sampleData;
+// Função auxiliar para converter entre tipos Transaction e TransactionRecord
+const toTransactionRecord = (transaction: Omit<Transaction, 'id'>, userId: string, familyId: string): Omit<TransactionRecord, 'id' | 'created_at'> => {
+  return {
+    user_id: userId,
+    family_id: familyId,
+    description: transaction.description,
+    amount: transaction.amount,
+    date: transaction.date instanceof Date ? transaction.date.toISOString() : new Date().toISOString(),
+    category: transaction.category,
+    type: transaction.type,
+  };
 };
 
-// Dados de exemplo para membros da família
-const generateSampleFamilyMembers = (userId: string, userEmail: string, userName: string): FamilyMember[] => {
-  return [
-    {
-      id: userId || '1',
-      name: userName || 'Você',
-      email: userEmail || 'seu.email@exemplo.com',
-      role: 'admin'
-    }
-  ];
+const fromTransactionRecord = (record: TransactionRecord): Transaction => {
+  return {
+    id: record.id,
+    description: record.description,
+    amount: record.amount,
+    date: new Date(record.date),
+    category: record.category,
+    type: record.type,
+    createdBy: record.user_id,
+    familyId: record.family_id,
+  };
 };
 
-// Improved function for serializing Date objects when saving to localStorage
-const serializeData = (data: any): string => {
-  return JSON.stringify(data, (key, value) => {
-    if (value instanceof Date) {
-      return { __type: 'Date', value: value.toISOString() };
-    }
-    return value;
-  });
+// Função auxiliar para converter entre tipos FamilyMember e FamilyMemberRecord
+const toFamilyMemberRecord = (member: Omit<FamilyMember, 'id'>, userId: string, familyId: string): Omit<FamilyMemberRecord, 'id' | 'created_at'> => {
+  return {
+    family_id: familyId,
+    user_id: userId,
+    name: member.name,
+    email: member.email,
+    role: member.role,
+  };
 };
 
-// Improved function for deserializing Date objects when reading from localStorage
-const deserializeData = (data: string): any => {
-  try {
-    return JSON.parse(data, (key, value) => {
-      if (value && typeof value === 'object' && value.__type === 'Date') {
-        return new Date(value.value);
-      }
-      return value;
-    });
-  } catch (error) {
-    console.error('Error deserializing data:', error);
-    return [];
-  }
+const fromFamilyMemberRecord = (record: FamilyMemberRecord): FamilyMember => {
+  return {
+    id: record.id,
+    name: record.name,
+    email: record.email,
+    role: record.role,
+  };
 };
 
 // Verify and fix transaction dates
@@ -182,127 +134,165 @@ const ensureValidDates = (transactions: Transaction[]): Transaction[] => {
   });
 };
 
-// Gera um ID único para a família com base no email do usuário
-const generateFamilyId = (email: string): string => {
-  return `family_${email.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`;
-};
-
 export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   const { user, isSignedIn } = useUser();
   const [familyId, setFamilyId] = useState<string | null>(null);
-  
-  // Gera um ID de família baseado no email do usuário quando disponível
-  useEffect(() => {
-    if (isSignedIn && user?.primaryEmailAddress) {
-      const newFamilyId = generateFamilyId(user.primaryEmailAddress.emailAddress);
-      setFamilyId(newFamilyId);
-    } else {
-      setFamilyId(null);
-    }
-  }, [isSignedIn, user]);
-  
-  // Função para obter a chave de armazenamento específica do usuário
-  const getUserStorageKey = (baseKey: string): string => {
-    return familyId ? `${baseKey}_${familyId}` : baseKey;
-  };
-  
-  // Safely load and validate transactions from localStorage
-  const loadTransactions = (): Transaction[] => {
-    if (!isSignedIn || !familyId) {
-      return [];
-    }
-    
-    const storageKey = getUserStorageKey('budget_transactions');
-    const savedData = localStorage.getItem(storageKey);
-    
-    if (savedData) {
-      try {
-        const parsed = deserializeData(savedData);
-        return ensureValidDates(parsed);
-      } catch (error) {
-        console.error('Erro ao carregar transações do localStorage:', error);
-        return generateSampleData();
-      }
-    }
-    
-    // No primeiro login, geramos dados de exemplo
-    const sampleData = generateSampleData();
-    return sampleData.map(transaction => ({
-      ...transaction,
-      familyId: familyId
-    }));
-  };
-  
-  const loadFamilyMembers = (): FamilyMember[] => {
-    if (!isSignedIn || !familyId) {
-      return [];
-    }
-    
-    const storageKey = getUserStorageKey('budget_family_members');
-    const savedData = localStorage.getItem(storageKey);
-    
-    if (savedData) {
-      try {
-        return JSON.parse(savedData);
-      } catch (error) {
-        console.error('Erro ao carregar membros da família do localStorage:', error);
-        return generateSampleFamilyMembers(
-          user?.id || '1',
-          user?.primaryEmailAddress?.emailAddress || '',
-          user?.fullName || 'Você'
-        );
-      }
-    }
-    
-    return generateSampleFamilyMembers(
-      user?.id || '1',
-      user?.primaryEmailAddress?.emailAddress || '',
-      user?.fullName || 'Você'
-    );
-  };
-  
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthData[]>([]);
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
-  
-  // Carregar dados quando o ID da família estiver disponível
-  useEffect(() => {
-    if (familyId) {
-      setTransactions(loadTransactions());
-      setFamilyMembers(loadFamilyMembers());
-    } else {
-      setTransactions([]);
-      setFamilyMembers([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Função para criar ou obter o ID da família
+  const createOrGetFamily = async (): Promise<string | null> => {
+    if (!isSignedIn || !user) return null;
+
+    try {
+      // Verificar se o usuário já está em uma família
+      const { data: existingMember, error: memberError } = await supabase
+        .from('family_members')
+        .select('family_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingMember) {
+        return existingMember.family_id;
+      }
+
+      // Se não está em uma família, criar uma nova
+      const familyName = `Família ${user.fullName || 'do ' + (user.username || user.id)}`;
+      const { data: newFamily, error: familyError } = await supabase
+        .from('families')
+        .insert({
+          name: familyName,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (familyError) {
+        console.error('Erro ao criar família:', familyError);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível criar sua família. Tente novamente.',
+          variant: 'destructive'
+        });
+        return null;
+      }
+
+      // Adicionar o usuário como admin na nova família
+      const { error: addMemberError } = await supabase
+        .from('family_members')
+        .insert({
+          family_id: newFamily.id,
+          user_id: user.id,
+          name: user.fullName || user.username || 'Você',
+          email: user.primaryEmailAddress?.emailAddress || '',
+          role: 'admin'
+        });
+
+      if (addMemberError) {
+        console.error('Erro ao adicionar membro à família:', addMemberError);
+        return null;
+      }
+
+      return newFamily.id;
+    } catch (error) {
+      console.error('Erro ao verificar ou criar família:', error);
+      return null;
     }
+  };
+
+  // Inicializar a família do usuário
+  useEffect(() => {
+    const initFamily = async () => {
+      if (isSignedIn && user) {
+        setIsLoading(true);
+        const familyId = await createOrGetFamily();
+        setFamilyId(familyId);
+        setIsLoading(false);
+      } else {
+        setFamilyId(null);
+        setTransactions([]);
+        setFamilyMembers([]);
+      }
+    };
+
+    initFamily();
+  }, [isSignedIn, user]);
+
+  // Carregar transações quando o ID da família estiver disponível
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!familyId) return;
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('family_id', familyId);
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          const parsedTransactions = data.map(fromTransactionRecord);
+          setTransactions(ensureValidDates(parsedTransactions));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar transações:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar suas transações. Tente novamente.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTransactions();
   }, [familyId]);
-  
-  // Safely save transactions to localStorage
+
+  // Carregar membros da família
   useEffect(() => {
-    if (isSignedIn && familyId && transactions.length > 0) {
-      const storageKey = getUserStorageKey('budget_transactions');
+    const loadFamilyMembers = async () => {
+      if (!familyId) return;
+      
+      setIsLoading(true);
       try {
-        localStorage.setItem(storageKey, serializeData(transactions));
+        const { data, error } = await supabase
+          .from('family_members')
+          .select('*')
+          .eq('family_id', familyId);
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          const members = data.map(fromFamilyMemberRecord);
+          setFamilyMembers(members);
+        }
       } catch (error) {
-        console.error('Error saving transactions to localStorage:', error);
+        console.error('Erro ao carregar membros da família:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar os membros da sua família. Tente novamente.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
       }
-    }
-  }, [transactions, isSignedIn, familyId]);
-  
-  // Save family members to localStorage
-  useEffect(() => {
-    if (isSignedIn && familyId && familyMembers.length > 0) {
-      const storageKey = getUserStorageKey('budget_family_members');
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(familyMembers));
-      } catch (error) {
-        console.error('Error saving family members to localStorage:', error);
-      }
-    }
-  }, [familyMembers, isSignedIn, familyId]);
-  
-  // Process transactions to calculate monthly data with added error handling
+    };
+
+    loadFamilyMembers();
+  }, [familyId]);
+
+  // Processar transações para calcular dados mensais
   useEffect(() => {
     const processMonthlyData = () => {
       try {
@@ -362,29 +352,13 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     processMonthlyData();
   }, [transactions, currentMonth, currentYear]);
 
-  // Atualiza o membro da família "Você" com os dados do usuário logado
-  useEffect(() => {
-    if (isSignedIn && user && familyId) {
-      setFamilyMembers(prev => {
-        // Filtra membros existentes excluindo o próprio usuário
-        const otherMembers = prev.filter(m => m.id !== user.id);
-        
-        // Adiciona o usuário atual como administrador
-        return [
-          {
-            id: user.id,
-            name: user.fullName || 'Você',
-            email: user.primaryEmailAddress?.emailAddress || 'seu.email@exemplo.com',
-            role: 'admin'
-          },
-          ...otherMembers
-        ];
+  const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+    if (!isSignedIn || !user || !familyId) {
+      toast({
+        title: 'Erro',
+        description: 'Você precisa estar logado para adicionar uma transação.',
+        variant: 'destructive'
       });
-    }
-  }, [isSignedIn, user, familyId]);
-
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    if (!isSignedIn || !familyId) {
       return;
     }
     
@@ -399,19 +373,70 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
       }
     }
     
-    const newTransaction: Transaction = {
+    const transactionToAdd = {
       ...transaction,
       date: transactionDate,
-      id: Date.now().toString(),
-      createdBy: user?.id,
-      familyId: familyId
     };
     
-    setTransactions(prev => [...prev, newTransaction]);
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert(toTransactionRecord(transactionToAdd, user.id, familyId))
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newTransaction: Transaction = {
+        id: data.id,
+        description: data.description,
+        amount: data.amount,
+        date: new Date(data.date),
+        category: data.category,
+        type: data.type,
+        createdBy: data.user_id,
+        familyId: data.family_id,
+      };
+
+      setTransactions(prev => [...prev, newTransaction]);
+      
+      toast({
+        title: 'Sucesso',
+        description: 'Transação adicionada com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar transação:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível adicionar a transação. Tente novamente.',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const deleteTransaction = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
+  const deleteTransaction = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTransactions(prev => prev.filter(t => t.id !== id));
+      
+      toast({
+        title: 'Sucesso',
+        description: 'Transação excluída com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao excluir transação:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir a transação. Tente novamente.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const getCurrentMonthData = () => {
@@ -444,24 +469,97 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     });
   };
 
-  const addFamilyMember = (member: Omit<FamilyMember, 'id'>) => {
-    if (!isSignedIn || !familyId) {
+  const addFamilyMember = async (member: Omit<FamilyMember, 'id'>) => {
+    if (!isSignedIn || !user || !familyId) {
+      toast({
+        title: 'Erro',
+        description: 'Você precisa estar logado para adicionar um membro.',
+        variant: 'destructive'
+      });
       return;
     }
     
-    const newMember: FamilyMember = {
-      ...member,
-      id: Date.now().toString()
-    };
-    
-    setFamilyMembers(prev => [...prev, newMember]);
+    try {
+      // Verificar se o email já está cadastrado na família
+      const { data: existingMembers } = await supabase
+        .from('family_members')
+        .select('*')
+        .eq('family_id', familyId)
+        .eq('email', member.email);
+
+      if (existingMembers && existingMembers.length > 0) {
+        toast({
+          title: 'Erro',
+          description: 'Este email já está cadastrado na família.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('family_members')
+        .insert(toFamilyMemberRecord(member, user.id, familyId))
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newMember: FamilyMember = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+      };
+
+      setFamilyMembers(prev => [...prev, newMember]);
+      
+      toast({
+        title: 'Sucesso',
+        description: 'Membro adicionado com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar membro:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível adicionar o membro. Tente novamente.',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const removeFamilyMember = (id: string) => {
+  const removeFamilyMember = async (id: string) => {
     // Não pode remover o usuário principal (admin)
-    if (id === user?.id) return;
+    if (id === user?.id) {
+      toast({
+        title: 'Operação não permitida',
+        description: 'Você não pode remover a si mesmo da família.',
+        variant: 'destructive'
+      });
+      return;
+    }
     
-    setFamilyMembers(prev => prev.filter(m => m.id !== id));
+    try {
+      const { error } = await supabase
+        .from('family_members')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setFamilyMembers(prev => prev.filter(m => m.id !== id));
+      
+      toast({
+        title: 'Sucesso',
+        description: 'Membro removido com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao remover membro:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível remover o membro. Tente novamente.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const isAdmin = () => {
@@ -489,7 +587,8 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
         filterTransactionsByMonth,
         addFamilyMember,
         removeFamilyMember,
-        isAdmin
+        isAdmin,
+        isLoading
       }}
     >
       {children}

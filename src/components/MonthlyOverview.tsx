@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useBudget } from '@/contexts/BudgetContext';
 import { formatCurrency, getMonthName } from '@/utils/financialUtils';
+import LoadingState from './LoadingState';
 
 const MonthlyOverview: React.FC = () => {
   const { 
@@ -13,8 +14,13 @@ const MonthlyOverview: React.FC = () => {
     currentYear, 
     setCurrentMonth, 
     setCurrentYear,
-    getCurrentMonthData 
+    getCurrentMonthData,
+    isLoading
   } = useBudget();
+  
+  if (isLoading) {
+    return <LoadingState />;
+  }
   
   const monthData = getCurrentMonthData();
   

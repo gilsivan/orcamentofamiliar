@@ -10,6 +10,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import MonthlyOverview from './MonthlyOverview';
 import TransactionList from './TransactionList';
+import LoadingState from './LoadingState';
 import { useBudget } from '@/contexts/BudgetContext';
 import { formatCurrency } from '@/utils/financialUtils';
 
@@ -19,14 +20,24 @@ const Dashboard: React.FC = () => {
     getCurrentMonthData,
     calculateYearlyTotals,
     currentMonth,
-    currentYear
+    currentYear,
+    isLoading
   } = useBudget();
+  
+  if (isLoading) {
+    return <LoadingState />;
+  }
   
   const monthData = getCurrentMonthData();
   const yearlyTotals = calculateYearlyTotals();
   
   const recentTransactions = transactions
-    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .sort((a, b) => {
+      if (!(a.date instanceof Date) || !(b.date instanceof Date)) {
+        return 0;
+      }
+      return b.date.getTime() - a.date.getTime();
+    })
     .slice(0, 5);
   
   return (
