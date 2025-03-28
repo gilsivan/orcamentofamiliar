@@ -13,6 +13,9 @@ import FamilySettings from "./pages/FamilySettings";
 import AuthLayout from "./components/AuthLayout";
 import AppShell from "./components/AppShell";
 import { ClerkProvider, SignIn, SignUp } from "@clerk/clerk-react";
+import { supabase } from "./lib/supabase";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
 
 // Componente de Login melhorado
 const Login = () => {
@@ -97,6 +100,12 @@ const queryClient = new QueryClient();
 const App = () => {
   // Obtenha a chave publicável
   const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  // Verificar se as configurações do Supabase estão disponíveis
+  const isSupabaseConfigured = SUPABASE_URL && SUPABASE_URL !== 'your-supabase-url' && 
+                              SUPABASE_KEY && SUPABASE_KEY !== 'your-supabase-anon-key';
 
   // Se não houver chave, mostre a mensagem para configurar a chave
   if (!PUBLISHABLE_KEY) {
@@ -129,6 +138,18 @@ const App = () => {
           <BudgetProvider>
             <Toaster />
             <Sonner />
+            {!isSupabaseConfigured && (
+              <div className="fixed top-0 left-0 right-0 z-50 p-4 bg-background">
+                <Alert variant="destructive">
+                  <ExclamationTriangleIcon className="h-4 w-4" />
+                  <AlertTitle>Configuração do Supabase</AlertTitle>
+                  <AlertDescription>
+                    As variáveis de ambiente do Supabase não estão configuradas. Dados não serão salvos. 
+                    Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
             <BrowserRouter>
               <Routes>
                 <Route path="/entrar" element={<Login />} />
